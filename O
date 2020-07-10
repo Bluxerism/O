@@ -1,0 +1,295 @@
+#include <iostream>
+#include <stdlib.h>
+#include <stdio.h>
+using namespace std;
+
+struct elemento {
+    char valor[100];
+    struct elemento *prox;
+    struct elemento *ant;
+    struct elemento *down;
+    struct elemento *up;
+    struct elemento *backtostart;
+
+};
+typedef struct elemento ELEM;
+ELEM *head = NULL;
+
+int oldornew=0; //will determine if it is a new word or a old word (0 stands for old, 1 stands for new)
+int wordexists=0; // will determine if a word does not have to be registered again (0 stands for old, 1 stands for new)
+
+void Speak(ELEM* start, char valor[100]);
+void AddWord(ELEM* start, char valor[100]);
+void DivideWordsforAdd(ELEM* start, char valor[100]);
+void DivideWordsforSpeak(ELEM* start, char valor[100]);
+void Hear(ELEM* start, char valor[100]);
+void CheckifExist (ELEM* start, char valor[100]);
+
+void Speak(ELEM* start, char valor[100]){
+    int newword=0;
+    ELEM *elem = start->prox;
+    while(elem->prox!=NULL){
+        elem=elem->prox; //go to the last element
+    }
+    while(elem){
+        int written=1;
+        for(int i=0;i<100;i++){ //check if the word was written
+            if(elem->valor[i]==valor[i] || valor[i]==0){
+                if(valor[i]==' ' || valor[i]==0){
+                    break;
+                }
+            }else{
+                written=0;
+            }
+        }
+        if(written==1){
+            if (elem->down==NULL){
+                newword=1; //do a check for a new word
+                break;
+            }
+        }
+        elem=elem->ant;
+    }
+    if(newword==0){
+        elem=start->prox;
+        while(elem->prox!=NULL){
+            elem=elem->prox; //go to the last element
+        }
+    }
+    while (elem){
+        if (newword==1){ //new word
+            int num=0;
+            while(elem->valor[num]!=' '){
+                num++;
+            }
+            if (elem->down==NULL){
+                cout<<"Me: What is ";
+                for(int i=0;i<num;i++){
+                    cout << elem->valor[i];
+                }
+                cout << " ?" << endl;
+                oldornew=1;
+                break;
+            }
+        }else{ //if there is no new word
+            int match=1;
+            for(int i=0;i<100;i++){   //check if its the right word to output
+                if (elem->valor[i]==valor[i] || valor[i]==0){
+                    if(valor[i]==0 || valor[i]==' '){
+                        break;
+                    }
+                }else{ //if it is a different value
+                    match=0;
+                }
+            }
+            if (match==1){
+                for (int i=0;i<100;i++){
+                    if(elem->valor[i]!=' '){
+                        cout << elem->valor[i];
+                    }else{
+                        cout<<": "<<endl;
+                        break;
+                    }
+                }
+                elem=elem->down;
+                while (elem->prox!=NULL){ //goto last element
+                    elem=elem->prox;
+                }
+                while (elem){
+                    for(int i=0;i<100;i++){
+                        if(elem->valor[i]!=' ' || (elem->valor[i]==' ' && elem->valor[i+1]!=' ')){ //this makes sure the whole sentence gets printed
+                            cout<<elem->valor[i];
+                        }
+                    }
+                    if (elem->ant==NULL){
+                        break;
+                    }
+                    elem=elem->ant;
+                    cout<<endl;
+                }
+                cout<<endl<<endl;
+                oldornew=0;
+            }
+        }
+        if (elem->up){
+            elem=elem->up;
+        }
+        elem = elem->ant;
+    }
+    cout<<endl;
+    if (oldornew==1){
+        Hear(elem,valor);
+    }
+}
+
+void AddWord(ELEM* start, char valor[100]){
+    ELEM *elem = (ELEM*)malloc(sizeof(ELEM));
+    if (oldornew==1){ //if it is a sub word
+        if (valor[0]==0){ //check if first value is [enter]
+            oldornew=0;
+            for(int i=0;i<100;i++){
+                if(valor[i]==0){
+                    valor[i]=' ';
+                }
+            }
+            Hear(start->backtostart,valor); //Call Hear with 'start' element in parameters
+        }
+        for(int i=0;i<100;i++){
+            if(valor[i]==0){
+                valor[i]=' ';
+            }
+        }
+        for(int i=0;i<100;i++){
+            elem->valor[i]=' ';
+        }
+        for(int i=0;i<100;i++){
+            if (valor[i]==' '&& valor[i-1]==' '){ //transfer every word until two spaces found (if bug appears, might remove && valor[i-1]==' ')
+                break;
+            }
+            elem->valor[i] = valor[i];
+        }
+        elem->down=NULL;
+        elem->ant=NULL;
+        elem->up=start;
+        if (start->down==NULL){
+            elem->prox=NULL;
+        }else{
+            elem->prox=start->down;
+            elem->prox->ant=elem;
+        }
+        start->down=elem;
+        Hear(start,valor);
+    }else{ //if is is a main word
+        for(int i=0;i<100;i++){
+            if(valor[i]==0){
+                valor[i]=' ';
+            }
+        }
+        for(int i=0;i<100;i++){
+            elem->valor[i]=' ';
+        }
+        for(int i=0;i<100;i++){
+            if (valor[i]==' ' && valor[i-1]==' '){//stop transferring the word at space key (if bug appears, might change ' ' to 0... or not)
+                break;
+            }
+            elem->valor[i] = valor[i];
+        }
+        elem->down=NULL;
+        elem->up=NULL;
+        elem->ant=NULL;
+        if (start->prox!=NULL){
+            elem->prox=start->prox;
+            elem->prox->ant=elem;
+        }else{
+            elem->prox=NULL;
+        }
+        elem->backtostart=start;
+        start->prox=elem;
+    }
+}
+
+void CheckifExist(ELEM* start, char valor[100]){
+        int same=0;
+        int checkfornew=1;
+        ELEM* elem=start->prox;
+        while(elem){
+            for(int i=0;i<100;i++){ //check if word exists
+                if(elem->valor[i]==valor[i] || valor[i]==0){
+                    same++;
+                    if (valor[i]==0 || valor[i]==' '){
+                        checkfornew=0;
+                        break;
+                    }
+                }else{
+                    break;
+                }
+            }
+            elem=elem->prox;
+        }
+        if (checkfornew==1){ //return to add new word to database
+            wordexists=1;
+            return;
+        }else{
+            wordexists=0;
+        }
+}
+
+void DivideWordsforSpeak(ELEM* start,char valor[100]){
+    char word[100];
+    int k=0;
+    for(int i=0;i<100;i++){
+        word[k]=valor[i];
+        if (valor[i]==' '){
+            if (valor[i-1]!=' '){
+                Speak(start,word);
+                for(int j=0;j<i;j++){ //reset char array (word)
+                    word[j]=' ';
+                }
+            }
+        k=-1;
+        }
+    k++;
+    }
+    Hear(start,valor);
+}
+
+void DivideWordsforAdd(ELEM* start, char valor[100]){
+    if (oldornew==1){
+        AddWord(start,valor);
+    }else{
+        char word[100];
+        int k=0;
+        for(int i=0;i<100;i++){
+            word[k]=valor[i];
+            if (valor[i]==' '){
+                if (valor[i-1]!=' '){
+                    CheckifExist(start,word);
+                    if (wordexists==1){
+                        AddWord(start,word); //send word including the last space key
+                    }
+                    for(int j=0;j<i;j++){ //reset char array (word)
+                        word[j]=' ';
+                    }
+                }
+            k=-1;
+            }
+        k++;
+        }
+        DivideWordsforSpeak(start,valor);
+    }
+}
+
+void Hear(ELEM* start, char valor[100]){
+    cout<<"You: ";
+    char x[100];
+    for(int i=0;i<100;i++){
+        x[i]=' ';
+    }
+    cin.getline(x,100);
+    cout << endl;
+    DivideWordsforAdd(start,x);
+}
+
+int main()
+{
+    head = (ELEM*)malloc(sizeof(ELEM));
+    head->valor[0] = 's';
+    head->valor[1] = 't';
+    head->valor[2] = 'a';
+    head->valor[3] = 'r';
+    head->valor[4] = 't';
+    head->prox=NULL;
+    head->ant=NULL;
+    head->down=NULL;
+    head->up=NULL;
+    head->backtostart=NULL;
+    cout << "Hello! I am AI to talk." << endl << endl << "You: ";
+    char x[100];
+    for(int i=0;i<100;i++){
+        x[i]=' ';
+    }
+    cin.getline(x,100);
+    cout << endl;
+    DivideWordsforAdd(head,x);
+    return 0;
+}
