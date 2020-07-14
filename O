@@ -17,6 +17,7 @@ ELEM *head = NULL;
 
 int oldornew=0; //will determine if it is a new word or a old word (0 stands for old, 1 stands for new)
 int wordexists=0; // will determine if a word does not have to be registered again (0 stands for old, 1 stands for new)
+int skipdescription=0; //will determine if in Speak() the second part should be skipped
 
 void Speak(ELEM* start, char valor[100]);
 void AddWord(ELEM* start, char valor[100]);
@@ -69,46 +70,49 @@ void Speak(ELEM* start, char valor[100]){
                 }
                 cout << " ?" << endl;
                 oldornew=1;
+                skipdescription=0;
                 break;
             }
-        }else{ //if there is no new word
-            int match=1;
-            for(int i=0;i<100;i++){   //check if its the right word to output
-                if (elem->valor[i]==valor[i] || valor[i]==0){
-                    if(valor[i]==0 || valor[i]==' '){
-                        break;
-                    }
-                }else{ //if it is a different value
-                    match=0;
-                }
-            }
-            if (match==1){
-                for (int i=0;i<100;i++){
-                    if(elem->valor[i]!=' '){
-                        cout << elem->valor[i];
-                    }else{
-                        cout<<": "<<endl;
-                        break;
+        }else{ //if there is no new word (second part)
+            if(skipdescription!=1){
+                int match=1;
+                for(int i=0;i<100;i++){   //check if its the right word to output
+                    if (elem->valor[i]==valor[i] || valor[i]==0){
+                        if(valor[i]==0 || valor[i]==' '){
+                            break;
+                        }
+                    }else{ //if it is a different value
+                        match=0;
                     }
                 }
-                elem=elem->down;
-                while (elem->prox!=NULL){ //goto last element
-                    elem=elem->prox;
-                }
-                while (elem){
-                    for(int i=0;i<100;i++){
-                        if(elem->valor[i]!=' ' || (elem->valor[i]==' ' && elem->valor[i+1]!=' ')){ //this makes sure the whole sentence gets printed
-                            cout<<elem->valor[i];
+                if (match==1){
+                    for (int i=0;i<100;i++){
+                        if(elem->valor[i]!=' '){
+                            cout << elem->valor[i];
+                        }else{
+                            cout<<": "<<endl;
+                            break;
                         }
                     }
-                    if (elem->ant==NULL){
-                        break;
+                    elem=elem->down;
+                    while (elem->prox!=NULL){ //goto last element
+                        elem=elem->prox;
                     }
-                    elem=elem->ant;
-                    cout<<endl;
+                    while (elem){
+                        for(int i=0;i<100;i++){
+                            if(elem->valor[i]!=' ' || (elem->valor[i]==' ' && elem->valor[i+1]!=' ')){ //this makes sure the whole sentence gets printed
+                                cout<<elem->valor[i];
+                            }
+                        }
+                        if (elem->ant==NULL){
+                            break;
+                        }
+                        elem=elem->ant;
+                        cout<<endl;
+                    }
+                    cout<<endl;//
+                    oldornew=0;
                 }
-                cout<<endl<<endl;
-                oldornew=0;
             }
         }
         if (elem->up){
@@ -116,7 +120,9 @@ void Speak(ELEM* start, char valor[100]){
         }
         elem = elem->ant;
     }
-    cout<<endl;
+    if(skipdescription!=1){
+        cout<<endl;
+    }
     if (oldornew==1){
         Hear(elem,valor);
     }
@@ -237,6 +243,26 @@ void DivideWordsforAdd(ELEM* start, char valor[100]){
     if (oldornew==1){
         AddWord(start,valor);
     }else{
+        //first run is to check if in general any new word appears
+        char word2[100];
+        int k2=0;
+        for(int i=0;i<100;i++){
+            word2[k2]=valor[i];
+            if (valor[i]==' '){
+                if (valor[i-1]!=' '){
+                    CheckifExist(start,word2);
+                    if (wordexists==1){
+                        skipdescription=1;
+                    }
+                    for(int j=0;j<i;j++){ //reset char array (word)
+                        word2[j]=' ';
+                    }
+                }
+            k2=-1;
+            }
+        k2++;
+        }
+        //Go for real
         char word[100];
         int k=0;
         for(int i=0;i<100;i++){
@@ -255,7 +281,7 @@ void DivideWordsforAdd(ELEM* start, char valor[100]){
             }
         k++;
         }
-        DivideWordsforSpeak(start,valor);
+            DivideWordsforSpeak(start,valor);
     }
 }
 
